@@ -21,7 +21,7 @@ clock = pygame.time.Clock()
 playerPositionX = 212
 playerPositionY = 212
 playerVelocityX = 0
-playerVelocityY = 0
+playerVelocityY = 2
 playerSize = 20
 playerSpeed = 10
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Food variables!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -35,7 +35,7 @@ FoodPositionY = screenHight/2
 
 foeAmount = 10
 minFoeDistaint = 150
-foeSize = 20
+foeSize = 25
 
 #Foe moving variables
 possiableWayX = random.randint(5,6)
@@ -55,8 +55,21 @@ grideSize = 100
 deflutgrideSize = 50
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Time variablse!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 a = 0
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Game variablse!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Game variablse!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Load images!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+bg = pygame.image.load("bg.png")
+bg = pygame.transform.scale(bg, (screenWidth, screenHight)) 
+
+gress = pygame.image.load("gress.png")
+gress = pygame.transform.scale(gress, (deflutgrideSize, deflutgrideSize)) 
+
+solid = pygame.image.load("solid.png")
+solid = pygame.transform.scale(solid, (deflutgrideSize, deflutgrideSize)) 
+
+sky = pygame.image.load("sky.png")
+sky = pygame.transform.scale(sky, (deflutgrideSize, deflutgrideSize)) 
+
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Game variablse!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Game variablse!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Game variablse!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -71,6 +84,8 @@ def main():
     foodList = foodGen()
     while ruuning:
         display.fill(black)
+        buildLevel(worldData=worldData)
+
         playerWindowArea()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -111,9 +126,10 @@ def main():
         playerPositionX += playerVelocityX
         playerPositionY += playerVelocityY
         player()
-        displayFood(foodList)
-        displayFoe(foeList,moveFoe=False,foeSheap='rect')
-        foeCollaition('rect')
+        # displayFood(foodList)
+        # displayFoe(foeList,moveFoe=False,foeSheap='rect')
+        # foeCollaition('rect')
+        blockCollaitions(worldData)
         text_screen(f'Time:{a}',white,10,10)
         a+=1
         # drawGride()
@@ -133,9 +149,9 @@ def calculateDistance(x1,y1,x2,y2):
 # _______________
 
 def player():
-    playerFoodConncetion()
 
-    pygame.draw.circle(display, green, (playerPositionX,playerPositionY), playerSize, width=0)
+    # pygame.draw.circle(display, green, (playerPositionX,playerPositionY), playerSize, width=0)
+    pygame.draw.rect(display, green, (playerPositionX,playerPositionY,playerSize,playerSize), width=0)
 
 
 
@@ -203,6 +219,98 @@ def displayFoe(foeList,moveFoe=False,foeSheap='circle'):
         #draw conncetion to player
         # pygame.draw.line(display, white, (playerPositionX,playerPositionY), (j[0],j[1]), width=1) #!importent
         
+
+
+def blockCollaitions(worldData):
+    global playerVelocityY
+    nearestFoe = []
+    for foePostions in worldData:
+        if abs(playerPositionX - foePostions[1]) < minFoeDistaint and abs(playerPositionY - foePostions[2]) < minFoeDistaint:
+            
+            distUpLeft = calculateDistance(playerPositionX,playerPositionY,foePostions[1],foePostions[2])
+
+            distMid = calculateDistance(playerPositionX,playerPositionY,foePostions[1]+foeSize,foePostions[2]+foeSize)
+
+            distUpRight = calculateDistance(playerPositionX,playerPositionY,foePostions[1]+foeSize*2,foePostions[2])
+
+            distDownLeft = calculateDistance(playerPositionX,playerPositionY,foePostions[1],foePostions[2]+foeSize*2)
+
+            distDwonRight = calculateDistance(playerPositionX,playerPositionY,foePostions[1]+foeSize*2,foePostions[2]+foeSize*2)
+        
+            # Shoe rect foe connections.........
+            pygame.draw.line(display, white, (playerPositionX,playerPositionY), (foePostions[1],foePostions[2]), width=1)
+
+            pygame.draw.line(display, white, (playerPositionX,playerPositionY), (foePostions[1]+foeSize,foePostions[2]+foeSize), width=1)
+
+            pygame.draw.line(display, white, (playerPositionX,playerPositionY), (foePostions[1]+foeSize*2,foePostions[2]), width=1)
+
+            pygame.draw.line(display, white, (playerPositionX,playerPositionY), (foePostions[1],foePostions[2]+foeSize*2), width=1)
+
+            pygame.draw.line(display, white, (playerPositionX,playerPositionY), (foePostions[1]+foeSize*2,foePostions[2]+foeSize*2), width=1)
+
+
+            # 1 Find the nearest node
+            NfoeInto = []
+            NfoeInto.append(distMid)
+            NfoeInto.append(foePostions[1])
+            NfoeInto.append(foePostions[2])
+            nearestFoe.append(NfoeInto)
+
+            #storing all collection dist
+            collectionDist = []
+            collectionDist.append(distUpLeft)
+            collectionDist.append(distDwonRight)
+            collectionDist.append(distMid)
+            collectionDist.append(distUpRight)
+            collectionDist.append(distDownLeft)
+            
+            # sorting the collectionDist
+            collectionDist.sort()
+            # print(dist)
+            lowerPoint = playerSize + foeSize
+            # print(lowerPoint,distUpLeft,distMid,distUpRight)
+            if distMid <= lowerPoint:
+                # print(collectionDist[0])
+                pygame.draw.circle(display, red, (playerPositionX,playerPositionY), playerSize, width=0)
+                playerVelocityY = 0
+
+                if distUpLeft < playerSize+foeSize/2:
+                    pygame.draw.circle(display, red, (playerPositionX,playerPositionY), playerSize, width=0)
+                        
+                if distUpRight < playerSize+foeSize/2:
+                    pygame.draw.circle(display, red, (playerPositionX,playerPositionY), playerSize, width=0)
+
+                if distDownLeft < playerSize+foeSize/2:
+                    pygame.draw.circle(display, red, (playerPositionX,playerPositionY), playerSize, width=0)
+
+                if distDwonRight < playerSize+foeSize/2:
+                    pygame.draw.circle(display, red, (playerPositionX,playerPositionY), playerSize, width=0)
+
+            if distMid >= int(lowerPoint)+2:
+                if distUpLeft < playerSize:
+                    pygame.draw.circle(display, red, (playerPositionX,playerPositionY), playerSize, width=0)
+                        
+                if distUpRight < playerSize:
+                    pygame.draw.circle(display, red, (playerPositionX,playerPositionY), playerSize, width=0)
+
+                if distDownLeft < playerSize:
+                    pygame.draw.circle(display, red, (playerPositionX,playerPositionY), playerSize, width=0)
+
+                if distDwonRight < playerSize:
+                    pygame.draw.circle(display, red, (playerPositionX,playerPositionY), playerSize, width=0)
+
+    nearestFoe.sort()
+    try:
+        # print(nearestFoe[0])
+        pass
+        # pygame.draw.line(display, white, (playerPositionX,playerPositionY), (nearestFoe[0][1],nearestFoe[0][2]), width=1)
+    except IndexError:
+        pass
+    return nearestFoe.sort()
+
+    pass
+
+
 
 def foeCollaition(foeSheap):
     global foeList
@@ -314,17 +422,11 @@ def movePlayer(nodeList=list):
 
 
 
-
-
-
-
-
-
-
 def displayFood(foodList):
-    pygame.draw.circle(display, pink, (FoodPositionX,FoodPositionY), foeSize, width=0)
+    playerFoodConncetion()
+    pygame.draw.circle(display, pink, (FoodPositionX,FoodPositionY), foodSize, width=0)
     for j in foodList:
-        pygame.draw.circle(display, pink, (j[0],j[1]), foeSize, width=0)
+        pygame.draw.circle(display, pink, (j[0],j[1]), foodSize, width=0)
 
 
 
@@ -384,6 +486,71 @@ def angle_of_line(x1, y1, x2, y2):
     #return math.degrees(math.atan2(-y1-y2, x2-x1))    # 1: math.atan
     return angle_of_vector(x2-x1, y2-y1)               # 2: pygame.math.Vector2.angle_to
     
+
+
+
+def buildLevel(worldData=list):
+
+    for item in worldData:
+        display.blit(item[0],(item[1],item[2]))
+
+def loadLevel(levedata=list):
+    worldData = []
+    rowNumber = 0
+    for row in levedata:
+        for index, gride in enumerate(row):
+
+            if gride == 1:
+                sg = []
+                sg.append(gress)
+                sg.append((index)*deflutgrideSize)
+                sg.append(rowNumber)
+                worldData.append(sg)
+
+            elif gride == 2:
+                sg = []
+                sg.append(solid)
+                sg.append((index)*deflutgrideSize)
+                sg.append(rowNumber)
+                worldData.append(sg)
+
+            elif gride == 3:
+                sg = []
+                sg.append(sky)
+                sg.append((index)*deflutgrideSize)
+                sg.append(rowNumber)
+                worldData.append(sg)
+        rowNumber += deflutgrideSize
+    
+    return worldData
+
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!Level variablse!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+level1 = [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0],
+            [0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ]
+
+worldData = loadLevel(level1)
+
+def jump():
+    global playerVelocityY,playerPositionY,jumpNow,jumpSpeed,jumpTakeOffposition,jumpTime
+    
+
+
 
 
 if __name__ == "__main__":
